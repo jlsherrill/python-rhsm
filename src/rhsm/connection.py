@@ -492,6 +492,12 @@ class Restlib(object):
     def request_delete(self, method):
         return self._request("DELETE", method)
 
+def doc_url(request_type, url):
+    """decorator for adding url info to UEPConnection methods"""
+    def _doc(func):
+        func.__doc__ = "%s\n%s" % (func.__doc__ or "", "%s %s" % (request_type,url))
+        return func
+    return _doc
 
 # FIXME: there should probably be a class here for just
 # the connection bits, then a sub class for the api
@@ -628,9 +634,11 @@ class UEPConnection:
         self.conn.close()
         log.info("remote connection closed")
 
+    @doc_url("GET", "/status/")
     def ping(self, username=None, password=None):
         return self.conn.request_get("/status/")
 
+    @doc_url("POST", "/consumers/")
     def registerConsumer(self, name="unknown", type="system", facts={},
             owner=None, environment=None, keys=None,
             installed_products=None):
@@ -658,6 +666,7 @@ class UEPConnection:
 
         return self.conn.request_post(url, params)
 
+    @doc_url("POST", "/hypervisors")
     def hypervisorCheckIn(self, owner, env, host_guest_mapping):
         """
         Sends a mapping of hostIds to list of guestIds to candlepin
@@ -680,6 +689,7 @@ class UEPConnection:
         """
         return self.updateConsumer(consumer_uuid, facts=facts)
 
+    @doc_url("PUT", "/consumers/{consumer_uuid}")
     def updateConsumer(self, uuid, facts=None, installed_products=None,
             guest_uuids=None, service_level=None, release=None):
         """
@@ -711,6 +721,7 @@ class UEPConnection:
         ret = self.conn.request_put(method, params)
         return ret
 
+    @doc_url("PUT", "/consumers/{consumer_uuid}/packages")
     def updatePackageProfile(self, consumer_uuid, pkg_dicts):
         """
         Updates the consumer's package profile on the server.
@@ -723,6 +734,7 @@ class UEPConnection:
         return ret
 
     # FIXME: username and password not used here
+    @doc_url("GET", "/consumers/{consumer_uuid}")
     def getConsumer(self, uuid, username=None, password=None):
         """
         Returns a consumer object with pem/key for existing consumers
@@ -818,6 +830,7 @@ class UEPConnection:
                 (self.sanitize(consumer_uuid), self.sanitize(service_level))
         return self.conn.request_get(method)
 
+    @doc_url("DELETE", "/consumers/{consumer_uuid}/certificates/{serial}")
     def unbindBySerial(self, consumerId, serial):
         method = "/consumers/%s/certificates/%s" % (self.sanitize(consumerId), self.sanitize(str(serial)))
         return self.conn.request_delete(method)
